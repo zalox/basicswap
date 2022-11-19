@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -e
+readonly SCRIPT_HOME=$(dirname `readlink -f $0`)
+readonly PROJECT_HOME=$(realpath "$SCRIPT_HOME/../")
+
+function command_exists {
+  local cmd;
+  cmd="$1"
+  command -v $cmd > /dev/null
+}
+
+function usage {
+  echo "./start "
+}
+
+function log {
+  echo "`date` $1…"
+}
+
+function error {
+  echo "`date` $1" > /dev/stderr
+}
+
+function requirements {
+  log "Checking requirements"
+  local e="";
+  function check {
+    if ! command_exists "$1"; then
+      error "$1: command not found"
+      e="1"
+    fi
+  }
+  check bash
+  check docker
+  check docker-compose
+  check jq
+  check curl
+  check mkdir
+  check export
+  check source
+  check realpath
+
+  if ! [ -f "$PROJECT_HOME/docker/basicswap.json" ]; then
+    error "$PROJECT_HOME/docker/basicswap.json: file not found";
+    e="1"
+  fi
+
+  [ "$e" == "" ] && log "Requirements are met"
+}
+
+function set_xmr_height {
+  if [ "CURRENT_XMR_HEIGHT" == "" ]; then
+    log "Setting Current XMR height"
+    export CURRENT_XMR_HEIGHT=`curl -s https://localmonero.co/blocks/api/get_stats | jq .height`
+    echo "CURRENT_XMR_HEIGHT=$CURRENT_XMR_HEIGHT" >> "$PROJECT_HOME/docker/.env"
+  fi
+}
+
+function check_if_with_coindata_path_is_present {
+  if [ "$COINDATA_PATH" == "" ]; then
+     error "Please set your datapath in `realpath $SCRIPT_HOME/../docker/.env`"
+     exit 1;
+  fi
+  mkdir -p "$COINDATA_PATH"
+  log "Starting with COINDATA_PATH=`realpath $COINDATA_PATH`"
+}
+
+function check_if_with_coins_is_present {
+  if [ "$WITH_COINS" == "" ]; then
+     error "Please set your desired coins in `realpath $SCRIPT_HOME/../docker/.env`"
+     exit 1;
+  fi
+  log "Starting with $WITH_COINS"
+}
+
+function check_if_config_file_is_present {
+  if ! [ -f $COINDATA_PATH/basicswap.json ]; then
+    log "Copying basicswap.json to data folder."
+    cp $PROJECT_HOME/docker/basicswap.json $COINDATA_PATH/basicswap.json
+  else
+    log "basicswap.json present in data folder."
+  fi
+}
+
+function start {
+  cd $SCRIPT_HOME/../docker
+  sudo docker-compose build
+  sudo docker-compose up
+}
+
+log "BasicSwap"
+requirements || (error "Requirements are not met" && exit 1)
+source $PROJECT_HOME/docker/.env
+set_xmr_height
+check_if_with_coins_is_present
+check_if_with_coindata_path_is_present
+check_if_config_file_is_present
+start "$@"

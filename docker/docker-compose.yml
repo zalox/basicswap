@@ -6,14 +6,14 @@ services:
         build:
             context: ../
         volumes:
-            - ${COINDATA_PATH}:/coindata
+            - "${COINDATA_PATH}:/coindata"
         ports:
             - "${HTML_PORT}"  # Expose only to localhost, see .env
             - "${WS_PORT}"    # Expose only to localhost, see .env
         environment:
-            TZ: "${TZ}"
-            COINS: "${COINS}"
-            CURRENT_XMR_HEIGHT: "${CURRENT_XMR_HEIGHT}"
+          - TZ=${TZ}
+          - WITH_COINS=${WITH_COINS}
+          - CURRENT_XMR_HEIGHT=${CURRENT_XMR_HEIGHT}
         logging:
             driver: "json-file"
             options:
