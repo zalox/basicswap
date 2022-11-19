@@ -11,7 +11,9 @@ services:
             - "${HTML_PORT}"  # Expose only to localhost, see .env
             - "${WS_PORT}"    # Expose only to localhost, see .env
         environment:
-            - TZ
+            TZ: "${TZ}"
+            COINS: "${COINS}"
+            CURRENT_XMR_HEIGHT: "${CURRENT_XMR_HEIGHT}"
         logging:
             driver: "json-file"
             options:
